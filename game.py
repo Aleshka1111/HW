@@ -27,11 +27,27 @@ class Damageably(ABC):
 
     def take_damage(self, amount: float):
         self._health-=amount
-        if isalive():
+        if self.isalive():
             return self._health
         else:
             return "DEATH"
+        
+    
+class Attacker(ABC):
+    @abstractmethod
+    def attack(self, target: Damageably):
+        damage=float(input())
+        return damage
+
+class Bonus(ABC, Entity):
+    """Абстракция всех бонусов"""
+
+    def __init__(self, player: "Player"):
+        player+=self
+
+
 class Player():
+    """игрок"""
     def __init__(self, max_health: int, damage: int, coins: int):
         self.__health=max_health
         self.max_health=max_health
@@ -41,3 +57,4 @@ class Player():
         self.medkits=[]
         self.furies=[]
     
+gggg=Bonus()
