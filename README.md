@@ -25,10 +25,10 @@
 Максимальный урон: 25. Имеет уровень прочности. После того, как прочность оказалась на нуле, то палка ломается.
 
 `Лук`<br>
-Максимальный урон: 35. Стрелять можно только стрелами. Если стрелы закончились, то лук становится недоступен.
+Максимальный урон: 35. Стрелять можно только стрелами. Если стрелы закончились, то лук становится недоступен. Лук расходует на выстрел 1 стрелу.
 
 `Револьвер`<br>
-Максимальный урон: 45. Стрелять можно только патронами. Если патроны закончились, то револьвер становится недоступен.
+Максимальный урон: 45. Стрелять можно только патронами. Если патроны закончились, то револьвер становится недоступен. Револьвер расходует на выстрел 2 патрона.
 
 ### Бонусы
 Бонусы собираются автоматически.
@@ -70,7 +70,7 @@
 Пример поля:
 ```
 -------------
-| | |X|X|X|X|
+| |W|X|X|X|X|
 |T| |B| |X|X|
 |E| |X|P|X|X|
 -------------
@@ -130,21 +130,23 @@ if __name__ == "__main__":
   - `@abstractmethod
 def attack(self, target: Damageable) -> float` — совершить атаку и вернуть нанесённый урон.
 
-#### `class Bonus(ABC, Entity)`
+#### `class Bonus(Entity)`
 **Назначение:** абстракция всех бонусов.
 - **Методы:**
   - `@abstractmethod
 def apply(self, player: 'Player') -> None` — применить бонус к игроку.
+  - `def symbol(self) -> str`
 
-#### `class Weapon(ABC)`
+#### `class Weapon(Entity)`
 **Назначение:** абстракция оружия.
 - **Атрибуты:**
   - `name: str` — название.
   - `max_damage: float` — максимальный урон «сырым» ударом/выстрелом.
 - **Методы:**
   - `@abstractmethod
-def roll_damage(self) -> float` — сгенерировать «сырое» значение урона от 0 до `max_damage`.
-  - `def is_available(self) -> bool` — доступно ли к использованию (боезапас/прочность и т.д.).
+def roll_damage(self) -> float` — сгенерировать «сырое» значение урона от 0 до `max_damage` (конкретную реализацию написать в классах `Fist`, `Stick` и т.д.).
+  - `def is_available(self) -> bool` — доступно ли к использованию (боезапас/прочность).
+  - `def symbol(self) -> str`
 
 #### `class MeleeWeapon(Weapon)`
 **Назначение:** ударное оружие, масштабируется яростью.
@@ -155,17 +157,19 @@ def roll_damage(self) -> float` — сгенерировать «сырое» з
 **Назначение:** стрелковое оружие, масштабируется точностью.
 - **Атрибуты:**
   - `ammo: int` — текущий боезапас.
+  - `ammo_consumption` - расход боеприпасов
 - **Методы:**
-  - `def consume_ammo(self, n: int = 1) -> bool` — попытаться потратить `n` боеприпасов.
+  - `def consume_ammo(self, n: int) -> bool` — попытаться потратить `n` боеприпасов.
   - `def damage(self, accuracy: float) -> float` — итоговый урон с учётом точности, если есть боезапас.
 
-#### `class Structure(ABC, Entity)`
+#### `class Structure(Entity)`
 **Назначение:** абстракция построек на поле.
 - **Методы:**
   - `@abstractmethod
 def interact(self, player: 'Player') -> None` — действие при входе игрока.
+  - `def symbol(self) -> str`
 
-#### `class Enemy(ABC, Entity, Damageable, Attacker)`
+#### `class Enemy(Entity, Damageable, Attacker)`
 **Назначение:** абстракция врагов.
 - **Атрибуты:**
   - `lvl: int` — уровень (1–10).
@@ -175,6 +179,7 @@ def interact(self, player: 'Player') -> None` — действие при вхо
   - `@abstractmethod
 def before_turn(self, player: 'Player') -> None` — триггеры статусов/призыва перед ходом игрока (яд/инфекция и т.д.).
   - `def roll_enemy_damage(self) -> float` — случайный урон врага от 0 до `max_enemy_damage`.
+  - `def symbol(self) -> str`
 
 ---
 
@@ -185,10 +190,12 @@ def before_turn(self, player: 'Player') -> None` — триггеры стату
 - **Атрибуты:**
   - `lvl: int` — уровень игрока.
   - `weapon: Weapon` — текущее оружие (всегда одно).
-  - `inventory: dict[str, int]` — инвентарь (монеты, стрелы, патроны и т.д.).
+  - `inventory: dict[str, list[Bonus]]` — инвентарь (монеты, стрелы, патроны и т.д.).
+  - `coins: int` - кол-во монет
   - `rage: float` — коэффициент ярости (≥ 1.0 по умолчанию 1.0).
   - `accuracy: float` — коэффициент точности (≥ 1.0 по умолчанию 1.0).
   - `statuses: dict[str, int]` — активные статусы с оставшимися ходами (например, `{"poison": 2, "infection": 3}`).
+  - `fight: bool` — статус в бою ли игрок
 - **Методы:**
   - `def move(self, d_row: int, d_col: int) -> None` — попытка перемещения.
   - `def attack(self, target: Damageable) -> float` — атака текущим оружием с учётом ярости/точности, возвращает урон.
@@ -196,7 +203,9 @@ def before_turn(self, player: 'Player') -> None` — триггеры стату
   - `def apply_status_tick(self) -> float` — применить урон от статусов перед своим ходом, вернуть нанесённый себе урон.
   - `def add_coins(self, amount: int) -> None` — пополнить монеты.
   - `def use_bonus(self, bonus: Bonus) -> None` — применить бонус (если есть).
-  - `def buy_auto_if_needed(self, bonus_factory: callable[[str], Bonus]) -> None` — автопокупка нужного бонуса, если он требуется в бою.
+  - `def buy_auto_if_needed(self, bonus: str) -> Bonus` — автопокупка нужного бонуса, если он требуется в бою.
+  - `def symbol(self) -> str`
+  - `def change_fight(self) -> None` - изменение статуса "в бою" на противоложный
 
 #### Враги
 
@@ -217,6 +226,7 @@ def before_turn(self, player: 'Player') -> None` — триггеры стату
   - `poison_chance: float = 0.10`
   - `summon_chance_low_hp: float = 0.10`
   - `poison_damage_base: float = 15.0`
+  - `call_threshold: float = 0.15` — доля HP, при котором призывается дополнительный паук.
   - `poison_turns: int = 2`
   - `reward_coins: int = 250`
 - **Методы:**
@@ -266,7 +276,7 @@ def before_turn(self, player: 'Player') -> None` — триггеры стату
   - `ammo: int` — патроны; случайное число от 5 до 10.
 - **Методы:**
   - `def is_available(self) -> bool`
-  - `def damage(self, accuracy: float) -> float` — расходует 1 патрон, возвращает урон.
+  - `def damage(self, accuracy: float) -> float` — расходует 2 патрона, возвращает урон.
 
 #### Бонусы
 
@@ -312,7 +322,7 @@ def before_turn(self, player: 'Player') -> None` — триггеры стату
 - **Атрибуты:** 
   - `reveal_radius: int = 2`
 - **Методы:**
-  - `def interact(self, board: Board) -> None` — открыть вокруг башни клетки в радиусе `reveal_radius`.
+  - `def interact(self, board: Board) -> None` — открыть клетки вокруг башни (в 8 направлениях) в радиусе `reveal_radius`.
 
 #### Поле боя
 
@@ -326,15 +336,15 @@ def before_turn(self, player: 'Player') -> None` — триггеры стату
   - `def place(self, entity: Entity, pos: tuple[int, int]) -> None` — разместить сущность.
   - `def entity_at(self, pos: tuple[int, int]) -> Entity | None` — получить сущность в клетке.
   - `def in_bounds(self, pos: tuple[int, int]) -> bool` — в пределах ли поля.
-  - `def render(self, player: Player) -> str` — вернуть текстовую отрисовку с символами `E,B,T,P,X` и открытыми клетками.
+  - `def render(self, player: Player) -> str` — вернуть текстовую отрисовку с символами `E,B,T,P,X,W` и открытыми клетками.
 
 #### Инициализация и цикл игры
 
 - `def start(n: int, m: int, player_lvl: int) -> tuple[Board, Player]` — создать поле, сгенерировать башни (≈1% от общего числа клеток), оружие (≈5%, кроме кулака), бонусы (≈30%), врагов (≈15%), гарантировать пустые старт/финиш.
-- `def game() -> None` — основной цикл ввода, перемещения, боёв и отрисовки.
+- `def game(board: Board, player: Player) -> None` — основной цикл ввода, перемещения, боёв и отрисовки.
 - `def main() -> None` — точка входа, вызывает `start` и `game()`.
 
 ### Обозначения на карте (символы)
-- Игрок — `P`, Враг — `E`, Бонус — `B`, Башня — `T`, Закрытая клетка — `X`, Пусто — пробел.
+- Игрок — `P`, Враг — `E`, Бонус — `B`, Башня — `T`, Закрытая клетка — `X`, Оружие - `W`, Пусто — пробел.
 
 
