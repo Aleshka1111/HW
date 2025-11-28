@@ -4,7 +4,9 @@ from random import randint, random, choice
 # абстрактные классы
 
 class Entity(ABC):
+
     """все сущности на доске"""
+
     def __init__(self, position: tuple[int, int]):
         self._position = position
 
@@ -18,7 +20,9 @@ class Entity(ABC):
 
 
 class Damageable(ABC):
+
     """те кто может принимать урон"""
+
     def __init__(self, hp: float, max_hp: float):
         self._hp = hp
         self._max_hp = max_hp
@@ -27,18 +31,20 @@ class Damageable(ABC):
         return self._hp > 0
 
     def heal(self, amount: float):
-        actual = min(amount, self._max_hp - self._hp)
-        self._hp += actual
-        return actual
+        regen = min(amount, self._max_hp - self._hp)
+        self._hp += regen
+        return regen
 
     def take_damage(self, amount: float):
-        actual = min(amount, self._hp)
-        self._hp -= actual
-        return actual
+        damage = min(amount, self._hp)
+        self._hp -= damage
+        return damage
 
 
 class Attacker(ABC):
+
     """те кто могут атаковать"""
+
     @abstractmethod
     def attack(self, target: Damageable):
         pass
@@ -46,7 +52,7 @@ class Attacker(ABC):
 # оружие
 class Weapon(Entity):
     """абстракция оружия"""
-    def __init__(self, name: str, max_damage: float, position: tuple):
+    def __init__(self, name: str, max_damage: float, position: tuple[int, int]):
         Entity.__init__(self, position)
         self._name = name
         self._max_damage = max_damage
@@ -63,13 +69,17 @@ class Weapon(Entity):
 
 
 class MeleeWeapon(Weapon):
+
     """аюстракция оружия ближнего боя"""
+
     def damage(self, rage: float):
         return self.roll_damage() * rage
 
 
 class RangedWeapon(Weapon):
+
     """абстракция оружия дальнего боя"""
+    
     def __init__(self, name:str, max_damage: float, ammo: int, position: tuple):
         super().__init__(name, max_damage, position)
         self._ammo = ammo
@@ -92,26 +102,34 @@ class RangedWeapon(Weapon):
 # конкретные виды оружия
 
 class Fist(MeleeWeapon):
+
+    """Стартовое оружие. Максимальный урон: 20. зависит от ярости"""
+
     def __init__(self, position: tuple[int, int]):
         super().__init__(name="Кулак", max_damage=20, position=position)
 
     def roll_damage(self):
         return randint(0, int(self._max_damage))
 
+
     def damage(self, rage:float):
         return self.roll_damage() * rage
 
 
 class Stick(MeleeWeapon):
+
+    """Максимальный урон: 25. Имеет уровень прочности. После того, как прочность оказалась на нуле, то палка ломается."""
+
     def __init__(self, position: tuple[int, int]):
         super().__init__(name="Палка", max_damage=25, position=position)
         self._durability = randint(10, 20)
 
+    def is_available(self):
+        return self._durability > 0
+
     def roll_damage(self):
         return randint(0, int(self._max_damage))
 
-    def is_available(self):
-        return self._durability > 0
 
     def damage(self, rage: float):
         if self._durability > 0:
@@ -121,6 +139,10 @@ class Stick(MeleeWeapon):
 
 
 class Bow(RangedWeapon):
+
+    """Максимальный урон: 35. Стрелять можно только стрелами. 
+    Если стрелы закончились, то лук становится недоступен. Лук расходует на выстрел 1 стрелу."""
+
     def __init__(self, position):
         ammo = randint(10, 15)
         super().__init__(name="Лук", max_damage=35, ammo=ammo, position=position)
@@ -130,6 +152,11 @@ class Bow(RangedWeapon):
 
 
 class Revolver(RangedWeapon):
+
+    """Максимальный урон: 45. Стрелять можно только патронами. 
+    Если патроны закончились, то револьвер становится недоступен. 
+    Револьвер расходует на выстрел 2 патрона."""
+
     def __init__(self, position: tuple[int, int]):
         ammo = randint(5, 10)
         super().__init__(name="Револьвер", max_damage=45, ammo=ammo, position=position)
@@ -141,6 +168,9 @@ class Revolver(RangedWeapon):
 # бонусы
 
 class Bonus(Entity):
+
+    """абстракция бонуса"""
+
     def __init__(self, position: tuple[int, int]):
         super().__init__(position)
 
@@ -153,6 +183,10 @@ class Bonus(Entity):
 
 
 class Medkit(Bonus):
+
+    """Увеличивает здоровье, но не выше максимального. Одноразовое применение. 
+    Сила аптечки определяется случайным значением от 10 до 40 в момент создания объекта. Стоимость аптечки - 75 монет."""
+
     def __init__(self, position: tuple[int, int]):
         super().__init__(position)
         self._power = randint(10, 40)
@@ -166,6 +200,10 @@ class Medkit(Bonus):
 
 
 class Rage(Bonus):
+
+    """Увеличивает урон кулаком и палкой. Одноразовое применение. 
+    Сила ярости определяется случайным значением от 0.1 до 1.0 в момент создания объекта. Стоимость ярости - 50 монет."""
+
     def __init__(self, position: tuple[int, int]):
         super().__init__(position)
         self._multiplier = 1.0 + random()
@@ -179,6 +217,9 @@ class Rage(Bonus):
 
 
 class Arrows(Bonus):
+
+    """Увеличивает кол-во стрел. Кол-во стрел определяется случайным значением от 1 до 20 в момент создания объекта. Нельзя купить."""
+
     def __init__(self, position: tuple[int, int]):
         super().__init__(position)
         self._amount = randint(1, 20)
@@ -192,6 +233,9 @@ class Arrows(Bonus):
 
 
 class Bullets(Bonus):
+
+    """Увеличивает кол-во патронов. Кол-во патронов определяется случайным значением от 1 до 10 в момент создания объекта. Нельзя купить."""
+    
     def __init__(self, position: tuple[int, int]):
         super().__init__(position)
         self._amount = randint(1, 10)
@@ -205,6 +249,10 @@ class Bullets(Bonus):
 
 
 class Accuracy(Bonus):
+
+    """Повышает точность стрельбы из лука и револьвера. 
+    Сила точности определяется случайным значением от 0.1 до 1.0 в момент создания объекта. Стоимость - 50 монет."""
+
     def __init__(self, position: tuple[int, int]):
         super().__init__(position)
         self._multiplier = 0.1 + random() * 0.9
@@ -218,6 +266,9 @@ class Accuracy(Bonus):
 
 
 class Coins(Bonus):
+
+    """монеты"""
+
     def __init__(self, position: tuple[int, int]):
         super().__init__(position)
         self._amount = randint(50, 100)
@@ -230,6 +281,9 @@ class Coins(Bonus):
 # постройки
 
 class Structure(Entity):
+
+    """абстракция построек"""
+
     def __init__(self, position: tuple[int, int]):
         super().__init__(position)
 
@@ -242,11 +296,14 @@ class Structure(Entity):
 
 
 class Tower(Structure):
+
+    """Открывает на поле соседние клетки радиусом 2."""
+
     def __init__(self, position: tuple[int, int]):
         super().__init__(position)
         self._reveal_radius = 2
 
-    def interact(self, player: 'Player', board: 'Board'):
+    def interact(self, board: 'Board'):
         r, c = self._position
         for dr in range(-self._reveal_radius, self._reveal_radius + 1):
             for dc in range(-self._reveal_radius, self._reveal_radius + 1):
@@ -259,6 +316,9 @@ class Tower(Structure):
 # виды врагов
 
 class Enemy(Entity, Damageable, Attacker):
+
+    """абстракция врага"""
+
     def __init__(self, lvl: int, max_hp: float, max_damage: float, reward_coins: int, position: tuple[int, int]):
         Entity.__init__(self, position)
         Damageable.__init__(self, hp=max_hp, max_hp=max_hp)
@@ -283,6 +343,12 @@ class Enemy(Entity, Damageable, Attacker):
 
 
 class Rat(Enemy):
+
+    """Во время боя с вероятностью в 25% крыса может заразить игрока на 3 хода. 
+    В этом случае перед ходом игрока с него дополнительно снимается `5 * (1 + lvl / 10)`. 
+    С вероятностью в 10% при низком уровне здоровья (ниже 15%) крыса может убежать.
+    Если крыса сбежала, то бой заканчивается. За победу даётся 200 монет."""
+
     def __init__(self, lvl: int, position: tuple[int, int]):
         hp = 100 * (1 + lvl / 10)
         max_dmg = 15 * (1 + lvl / 10)
@@ -303,6 +369,13 @@ class Rat(Enemy):
 
 
 class Spider(Enemy):
+
+    """Во время боя с вероятностью в 10% паук может отравить игрока на 2 хода. В этом случае перед ходом игрока 
+    с него дополнительно снимается `15 * (1 + lvl / 10)`.
+    С вероятностью в 10% при низком уровне здоровья (ниже 15%) паук может призвать другого паука. 
+    При этом текущий паук не убегает с поля боя. 
+    Призванный паук также может призвать нового пука. За победу над каждым пауком даётся 250 монет в конце боя."""
+
     def __init__(self, lvl: int, position: tuple[int, int]):
         hp = 100 * (1 + lvl / 10)
         max_dmg = 20 * (1 + lvl / 10)
@@ -321,6 +394,9 @@ class Spider(Enemy):
 
 
 class Skeleton(Enemy):
+
+    """Скелет может атаковать оружием. За победу даётся 150 монет и оружие, которое было у скелета, кроме кулака."""
+
     def __init__(self, lvl: int, position: tuple[int, int]):
         hp = 100 * (1 + lvl / 10)
         max_dmg = 10 * (1 + lvl / 10)
@@ -342,6 +418,9 @@ class Skeleton(Enemy):
 # игрок
 
 class Player(Entity, Damageable, Attacker):
+
+    """игрок - персонаж, который имеет жизни, инвентарь с бонусами и оружие(только одно)"""
+
     def __init__(self, lvl: int, position: tuple[int, int]):
         Entity.__init__(self, position)
         max_hp = 150 * (1 + lvl / 10)
@@ -366,11 +445,9 @@ class Player(Entity, Damageable, Attacker):
             print("Нельзя выйти за пределы поля!")
             return False
         self._position = new_pos
-        return True
+        #return True
 
     def attack(self, target: Damageable):
-        print(f"Тип оружия: {type(self._weapon)}")
-        print(f"Является ли объектом? {hasattr(self._weapon, 'is_available')}")
         if isinstance(self._weapon, MeleeWeapon):
             dmg = self._weapon.damage(self._rage)
         elif isinstance(self._weapon, RangedWeapon):
@@ -514,18 +591,38 @@ class Board:
 def start():
     print("Игра 'Сдохни или умри'")
     print("Введите размеры поля:")
-    try:
-        n = int(input("Количество строк: "))
-        m = int(input("Количество столбцов: "))
-        lvl = int(input("Уровень игрока (1-10): "))
-        if not (1 <= lvl <= 10):
-            print("Уровень должен быть от 1 до 10. Установлен 1.")
+    n_input = input("Количество строк: ").strip()
+    if n_input.isdigit() and int(n_input) > 0:
+        n = int(n_input)
+    else:
+        print("Некорректное количество строк. Установлено: 5")
+        n = 5
+
+    m_input = input("Количество столбцов: ").strip()
+    if m_input.isdigit() and int(m_input) > 0:
+        m = int(m_input)
+    else:
+        print("Некорректное количество столбцов. Установлено: 5")
+        m = 5
+
+    lvl_input = input("Уровень игрока (1-10): ").strip()
+    if lvl_input.isdigit():
+        lvl = int(lvl_input)
+        if 1 <= lvl <= 10:
+            pass  
+        else:
+            print("Уровень должен быть от 1 до 10. Установлен: 1")
             lvl = 1
-    except ValueError:
-        print("Некорректный ввод. Установлено 5x5, уровень 1.")
-        n = m = 5
+    else:
+        print("Некорректный ввод уровня. Установлен: 1")
         lvl = 1
 
+
+    board = Board(n, m)
+    player = Player(lvl=lvl, position=(0, 0))
+    board.place(player, (0, 0))
+
+    total_cells = n * m
     board = Board(n, m)
     player = Player(lvl=lvl, position=(0, 0))
     board.place(player, (0, 0))
@@ -576,7 +673,7 @@ def start():
     return board, player
 
 
-def game(board, player):
+def game(board: Board, player: Player):
     while True:
         if not player.is_alive():
             print("Вы умерли. Игра окончена.")
