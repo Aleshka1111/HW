@@ -72,16 +72,16 @@ class MeleeWeapon(Weapon):
         return self.roll_damage() * rage
     
     def to_dict(self):
-
         return {
-            "type": "melee",
+            "class": self.__class__.__name__,  
+            "type": "melee",                   
             "name": self._name,
             "max_damage": self._max_damage,
-            "position": self.position,
+            "position": self._position,
             "available": self.is_available(),
-            "durability": getattr(self, '_durability', None)  
+            "durability": getattr(self, '_durability', None)
         }
-    
+
 
 class RangedWeapon(Weapon):
     
@@ -106,10 +106,11 @@ class RangedWeapon(Weapon):
     
     def to_dict(self):
         return {
+            "class": self.__class__.__name__,
             "type": "ranged",
             "name": self._name,
             "max_damage": self._max_damage,
-            "position": self.position,
+            "position": self._position,
             "available": self.is_available(),
             "ammo": self._ammo,
             "ammo_consumption": self._ammo_consumption
@@ -191,12 +192,6 @@ class Revolver(RangedWeapon):
     def roll_damage(self):
         return randint(0, int(self._max_damage))
     
-    @classmethod
-    def from_dict(cls, data):
-        instance = cls(position=tuple(data["position"]))
-        instance._ammo = data["ammo"]
-        return instance
-
     @classmethod
     def from_dict(cls, data):
         instance = cls(position=tuple(data["position"]))
